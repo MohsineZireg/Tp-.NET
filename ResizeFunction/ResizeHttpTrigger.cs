@@ -6,7 +6,10 @@ using Microsoft.Azure.WebJobs;
 using Microsoft.Azure.WebJobs.Extensions.Http;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Processing;
 using Newtonsoft.Json;
+using SixLabors.ImageSharp.Formats.Jpeg;
 
 namespace Company.Function
 {
@@ -14,22 +17,32 @@ namespace Company.Function
     {
         [FunctionName("ResizeHttpTrigger")]
         public static async Task<IActionResult> Run(
-            [HttpTrigger(AuthorizationLevel.Anonymous, "get", "post", Route = null)] HttpRequest req,
+            [HttpTrigger(AuthorizationLevel.Function, "post", Route = null)] HttpRequest req,
             ILogger log)
         {
             log.LogInformation("C# HTTP trigger function processed a request.");
 
-            string name = req.Query["name"];
+            // Récupérer les paramètres de largeur et de hauteur de la requête
+            int width = int.Parse(req.Query["w"]);
+            int height = int.Parse(req.Query["h"]);
 
-            string requestBody = await new StreamReader(req.Body).ReadToEndAsync();
-            dynamic data = JsonConvert.DeserializeObject(requestBody);
-            name = name ?? data?.name;
+            // Charger l'image à partir du corps de la requête
+            using (Stream imageStream = req.Body)
+            using (var image = Image.Load(imageStream))
+            {
+                // Redimensionner l'image
+                image.Mutate(x => x.Resize(width, height));
 
-            string responseMessage = string.IsNullOrEmpty(name)
-                ? "This HTTP triggered function executed successfully. Pass a name in the query string or in the request body for a personalized response."
-                : $"Hello, {name}. This HTTP triggered function executed successfully.";
+                // Convertir l'image en octets JPEG
+                using (var outputStream = new MemoryStream())
+                {
+                    image.Save(outputStream, new JpegEncoder());
+                    byte[] targetImageBytes = outputStream.ToArray();
 
-            return new OkObjectResult(responseMessage);
+                    // Renvoyer les octets de la nouvelle image en tant que réponse à la requête
+                    return new FileContentResult(targetImageBytes, "image/jpeg");
+                }
+            }
         }
     }
 }
