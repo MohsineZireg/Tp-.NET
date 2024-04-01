@@ -13,11 +13,11 @@ namespace ImageProcessingExample
         static void Main(string[] args)
         {
             // Chemin vers le dossier contenant les images
-            string inputFolder = "public/input";
+            string inputFolder = "../public/input";
             string[] inputFiles = Directory.GetFiles(inputFolder, "*.jpg");
 
             // Chemin vers le dossier de sortie
-            string outputFolder = "public/output";
+            string outputFolder = "../public/output";
             Directory.CreateDirectory(outputFolder); // Créer le dossier de sortie s'il n'existe pas
 
             // Mesurer le temps d'exécution sans parallélisme
